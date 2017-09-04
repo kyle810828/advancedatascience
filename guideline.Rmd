@@ -8,7 +8,7 @@ output: html_document
 Perform an analysis of "data scientist" jobs listed on job boards and on the employment pages of major companies. What are the most common skills that employers look for? What are the most unique skills that employers look for? Where are the types of companies that employ the most data scientists?
 
 ### Project Guide Line
-1. Scrape data from job postings website such as  **[Linkedin](https://www.linkedin.com/)**, **[indeed.com](https://www.indeed.com/)…etc.
+1. Scrape data from job postings website such as  **[Linkedin](https://www.linkedin.com/)**, **[indeed.com](https://www.indeed.com/)**…etc.
 2. Find the most related skills for data scientist and identify common and important elements.
 3. Create clean data set (covariate: skill, location...etc.)
 4. Do data visualizations, create histogram or useful chart and find what is the most crucial skill for data scientist with an output of a map of job posting location
