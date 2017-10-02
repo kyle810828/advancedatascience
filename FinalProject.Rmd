@@ -19,6 +19,8 @@ library(plyr)
 library(httr)
 library(dplyr)
 library(rebus)
+library(knitr)
+
 ```
 
 ### Scraping data from GlassDoor and Indeed.
@@ -244,3 +246,9 @@ write.csv(Glassdoor_final,"Glassdoor.csv")
 write.csv(Indeed_final,"Indeed.csv")
 
 ```
+
+######Output looks like as following:
+
+```{r,include=FALSE}
+GlassDoor<-read.csv("GlassDoor.csv")
+kable(GlassDoor, format = "html")
