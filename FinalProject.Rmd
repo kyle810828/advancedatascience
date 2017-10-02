@@ -246,9 +246,3 @@ write.csv(Glassdoor_final,"Glassdoor.csv")
 write.csv(Indeed_final,"Indeed.csv")
 
 ```
-
-######Output looks like as following:
-
-```{r,include=FALSE}
-GlassDoor<-read.csv("GlassDoor.csv")
-kable(GlassDoor, format = "html")
