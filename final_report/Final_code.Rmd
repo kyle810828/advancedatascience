@@ -1,0 +1,468 @@
+---
+title: "Comparison of Data Science Job Postings in Two Different Websites."
+author: "Chih-Kai (Kyle) Chang"
+output:
+  pdf_document: default
+  html_document: default
+  fontsize: 12pt
+  geometry: margin = 1.2in
+---
+## 0.Introduction
+As technology advances and internet platform gets common nowadays, we generate a huge amount of data every day. Data scientists were not quite often on the radars a decade ago, but in recent year their popularity shows that businesses now take data seriously. There is no doubt the importance of data scientist will become significantly evident. We live in a data-driven world, and there's no turning back. Data science is widely used in business. We might think that browsing and purchase history might not important. However, those are like cruel oil for lots of business. Data in the 21st century is like oil in the 18th century, a business report said. Amazon recommendations, Facebook page campaigns, and Netflix suggestions are all powered by data science. Most of the data sets are now so large and complex that we need tools and approaches to exploit the most of them. According to global management consulting firm McKinsey & Company, there would be 4 million big data-related jobs in the U.S, and a shortage of 140,000 to 190,000 data scientists[1].
+
+## 1.General approach 
+As we can see from lots of business report, data scientists are in high demand and basically essential for many industries. Therefore, understanding the requirement skills for data scientist jobs is important. In this project, we performed an analysis for *data scientist jobs* listed on two different job posting websites [Glassdoor.com](https://glassdoor.com),and [Indeed.com](https://www.indeed.com/) to identify the required skills that employers look for and look for where the types of companies that employ the most data scientists. We can categorize our approach into these parts : Data collection, Data cleaning, Exploratory (Statistical) Analysis, Result, Limitation.
+
+
+## 2.Data collection
+####2.1 Selecting job posting websites
+  I collected data from **[Glassdoor.com](https://www.glassdoor.com/)**, **[indeed.com](https://www.indeed.com/)** by inputting  **data scientist** as key word ( This might cause some biases I will discuss in **`5.Discussion and Limitation`** section.)
+
+There are a few reasons that I select these two website. First, Glassdoor as well as Indeed has been widely used and has lots of users. Besides, it is not hard for us to see their advertisement and commercial, so that those two job posting websites gain good publicity not only for their users but for employers. There is no doubt that those two websites are very popular and well-known. 
+
+  Second, the URLs in the website must have certain pattern and in clean manner. Take URLs in Indeed.com as an example.(`https://www.indeed.com/jobs?q=data+scientist&l=baltimore&radius=25&start=100`)
+  
+  `q=data+scientist&l=baltimore&radius=25` means that I want to search for **data scientist** jobs in **Baltimore** city within **25 miles**. In addition, `start=100` can bring us to the result of number **100 th** job posting. By changing those parameter, we can easily scrape all the data on that website. To sum up, URLs on Indeed.com and Glassdoor.com have certain pattern for us to modify so that those URLs can easily direct us to the page we want.
+\newpage
+
+#### 2.2 Scraping information from website
+
+I collected data on September 26th and 27th and created a data set with 616 observations in *Glassdoor.com* [0] and 338 observations in *Indeed.com* [0] of these variables title, company, industry, location.  I used `R.studio` to perform this analysis.In addition, I also checked CSS script to find certain pattern and get the information I need. My steps are as following.
+
+  * Got all URLs in that job posting website
+  
+  * Used `rvest` package in R [2] and `SelectorGadget` extension in Google Chrome [3] to scrape information from webpage or read CSS script and source code to get the nodes we want 
+  
+  * Copied CSS selectors, and Xpath into `html_nodes()`, a function to extract pieces out of HTML documents using XPath and css selectors in `rvest` package.[2] (See Supplemental code: ScrappingData: Chunk2)
+  
+  * Cleaned data set by using  `stringr` package [4] and writing a R function by myself to clean text (See Supplemental code: ScrappingData: Chunk 3,4)
+
+  * Create a data frame which contain job title, company, industry, city, state, and the link (URL) for that job.Output is in the Data folder named *glassdoor_datascientist_Info.csv* with observations 616
+, and *indeed_datascientist_Info.csv* with observations 338.
+
+#### 2.3 Scraping required skills for data scientist 
+I wrote a function `ScrSkill` (See Supplemental code: ScrappingData: Chunk 4,5) to scrape the requirement for data scientist. By inputting a clean format which I created previously (*glassdoor_datascientist_Info.csv*, and *indeed_datascientist_Info.csv*) , `ScrSkill` function can read the job link and scrape certain key words that I am interested in. The steps are as following. 
+
+  * Created a list of the most common and widely used skills for data scientist. That list includes statistics, computer science, math, machine learning, data mining, predictive modeling, R, Java, Python, SQL, SAS, Tableau, Excel, C++, Hadoop, Stata, Spark, matlab. (Used `\\b` before and after these words to make sure they are perfectly match)
+
+  * Wrote a for loop to run all job links URLs, and put URL into `html_text` in `rvest` package [2] to read the text in whole webpage, and then cleaned the text by using `stringr`[4] to clean text. For example, in glassdoor, I got sourcecode by using `readLines` function, and found specific pattern for industry. (See Supplemental code: ScrappingData: Chunk 4)
+
+  * I output `TRUE` for skills found in the text and `FALSE` otherwise by using `sapply` and `grep` function, Finally, I created a data frame to save them. (See Supplemental code: ScrappingData: Chunk 4)
+
+#### 2.4 Data cleaning
+Since job posting website might post the same job multiple time, I excluded the duplicate data. As for missing value `NA`, they might provide some useful information when I do exploratory analysis so I keep them for now. For example, some data might lose company location, but it does have skill requirement information. That would be helpful when I want to investigate required skills for data scientist.
+
+
+## 3.Exploratory analysis and t-test 
+#### 3.1 Compared required skills for data scientist in *Glassdoor.com* and *Indeed.com*
+
+  In order to get a rough idea of the occurrence rate for certain type of skills in these two websites, I created a bar chart. The sample size in Glassdoor.com is 616, while that in Indeed.com is 338. The result is as following.
+
+\vspace{12pt}
+
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=4}
+
+packages<-c("dplyr","ggplot2","reshape2","ggpubr","cowplot","kableExtra","knitr","stringr","rebus","ggmap","tidyr")
+
+for (i in packages){
+  if(!require(i,character.only = T,quietly=T,warn.conflicts = F)){
+    install.packages(i)
+  }
+  require(i,character.only = T,quietly=T,warn.conflicts = F)
+}
+
+#Downloading the several .cvs file in Data folder, before running these code
+#get your local working directory, and save the data in there
+
+local<-getwd()
+setwd(local)
+Indeed<-read.csv("Indeed.csv")
+Indeed<-as.data.frame(Indeed)
+setwd(local)
+GlassDoor<-read.csv("GlassDoor.csv")
+GlassDoor<-as.data.frame(GlassDoor)
+colnames(GlassDoor)[19]<-'C++'
+colnames(Indeed)[18]<-'C++'
+
+
+#Skill set
+glassdoor.com<-GlassDoor[,6:23] %>% colSums()/nrow(GlassDoor)
+indeed.com<-Indeed[,5:22] %>% colSums()/nrow(Indeed)
+df<-cbind(glassdoor.com,indeed.com)
+df.long<-melt(df)
+colnames(df.long)[2]<-'website'
+
+skillbar<-ggplot(df.long,aes(reorder(Var1, value),value,fill=website))+
+  geom_bar(stat="identity",position="dodge")+ 
+  coord_flip() + labs(x = 'Skills', y = 'Occurrences Rate', 
+                      title = 'Skills that data scientist needs according to job posting websites')+
+  theme(plot.title = element_text(hjust = 0.5,size = 12))
+
+dfG<-df.long[1:18,c(1,3)]
+a<-dfG[dfG$value%in%head(sort(dfG$value,decreasing=TRUE), n = 5),]
+a<-arrange(a,desc(value))
+colnames(a)<-c("Glassdoor","Occurrences Rate")
+
+
+dfI<-df.long[19:36,c(1,3)]
+b<-dfI[dfI$value%in%head(sort(dfI$value,decreasing=TRUE), n = 5),]
+b<-arrange(b,desc(value))
+colnames(b)<-c("Indeed","Occurrences Rate")
+
+skillbar
+```
+
+  **Figure 1.** A bar chart lists those skills that data scientist should have, according to job posting websites. *`R` has the highest occurrence rate in both websites.*
+
+ I listed top 5 tag skills in each website. The top five required skills from the first to fifth in *Glassdoor* are `R`, `Python`, `Math`, `C++`, `Statistics` respectively, while in *Indeed* are `R`, `C++`, `Math`, `Python`, `Statistics`. `R` has the highest occurrence rate in both websites with 0.79(%) in *Glassdoor* and 0.82(%) in *Indeed*. Furthermore, `R` is followed by `Python` in *Glassdoor* with 0.74(%) occurrence rate and followed by `C++` in *indeed* with 0.64(%) occurrence rate. We can know the rest statistics from the table below.
+ 
+ 
+```{r,warning=FALSE,echo=FALSE,message=FALSE}
+kable(cbind(a,b))
+```
+ 
+
+* **Perform 2-sample t-test**
+
+  The top five skills in both job posting websites are the same, but the order is somewhat different. In order to investigate whether the occurrence rate in these two website is different, I performed a t-test (See Supplemental code: Final_Report: Chunk 3) with sample size 616 in *Glassdoor* and 338 in *Indeed*. The result are as following. 
+  
+  *Null hypothesis: the proportions of certain skills in glassdoor and indeed are the same*
+
+  *Alternative hypothesis: the proportions of certain skills in glassdoor and indeed are different*
+ 
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=4}
+
+testG<-GlassDoor[,c('R','Python','Math','C++','Statistics')]
+testI<-Indeed[,c('R','Python','Math','C++','Statistics')]
+
+#t test
+proptest<-matrix(rep(NA,20),ncol=4)
+for(i in 1:5){
+  x<-prop.test(c(sum(testG[,i]),sum(testI[,i])),c(nrow(testG),nrow(testI)),correct=FALSE)
+  proptest[i,]<-c(colnames(testG)[i],
+                  abs(x$estimate[1]-x$estimate[2]) %>% round(.,4),
+                   paste0(round(c(x$conf.int[1],x$conf.int[2]),4)[1]," , ",round(c(x$conf.int[1],x$conf.int[2]),4)[2]),
+  x$p.value)
+}
+proptest<-as.data.frame(proptest)
+#make it as clean form
+proptest$V4=c("0.2843","1.675e-16","4.936e-11","0.2523","3.516e-11")
+colnames(proptest)<-c("Skills","Difference","95% CI","p-value")
+## proportional test
+kable(proptest)
+```
+
+  As we can see from the table, there is no significant difference for programming skills in `R`, and `C++`. However, other skills are very different from these two websites with very small p-value. 
+
+  Therefore, I conclude that `R` is the most common skills that employers look for, since `R` has the highest occurrence rate in both websites and we do not have supportive evidence to say that the requirement of programming skill in `R` is different between *Glassdoor.com* and *Indeed.com*. 
+  
+  In other words, `R` has the highest occurrence rate in both website and the occurrence rate does not have a significant difference between *Glassdoor* and *Indeed*. However, other skills, expect for `C++`, that employers look for might be  different form website to website. Because each job website has its preference and users, it might cause sampling bias. Therefore, we have to think carefully when we scrape data form job posting website.
+
+
+#### 3.2 Unique skill for data scientist 
+
+In the part, I want to find unique skill for *"data scientist"* (There are some limitation. See **`5.Discussion and Limitation`** section)
+
+  First, I separated `Indeed.csv` data set with observations 338 and 22 variables (See Data folder) into two part . The first part is job title with exact words **data scientist** (n=254), and the other is job title which does not contain *data scientist* (n=94) such as quantitative analyst, data engineer... etc. Second, I calculated their occurrence rate differences and performed a t-test (See Supplemental code: Final_Report: Chunk 4). Last, I listed top three occurrence rate differences skills `Python`, `SQL`, and `R` respectively, and tried to find that whether there is a significant difference between "data scientist" and other job title.
+  
+  *Null hypothesis: the proportions of certain skills are the same for job title with  exact words **data scientist** and others job title related to data scientist*
+
+  *Alternative hypothesis: the proportions of certain skills are different for job title with exact words **data scientist** and others job title related to data scientist*
+
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=4}
+library(stringr)
+
+otherjob.data<-Indeed[-which(str_detect(Indeed$title,"Data")),]
+Ds.data<-Indeed[which(str_detect(Indeed$title,"Data")),]
+
+#Difference to other job title
+other.title<-otherjob.data[,5:22] %>% colSums()/nrow(otherjob.data)
+Data.scientist<-Ds.data[,5:22] %>% colSums()/nrow(Ds.data)
+diff.top3<-tail(sort(Data.scientist-other.title),3)
+
+R.t.test<-t.test(otherjob.data[names(diff.top3)[1]],
+             Ds.data[names(diff.top3)[1]],alternative="less")
+
+SQL.t.test<-t.test(otherjob.data[names(diff.top3)[2]],
+             Ds.data[names(diff.top3)[2]],alternative="less")
+
+Python.t.test<-t.test(otherjob.data[names(diff.top3)[3]],
+             Ds.data[names(diff.top3)[3]],alternative="less")
+
+Unique.Skill<-c("R","SQL","Python")
+Occr.diff<-c(diff.top3)
+
+CI<-c(
+  paste0((R.t.test$conf.int %>% round(.,4))[1]," , ",(R.t.test$conf.int %>% round(.,4))[2]),
+  paste0((SQL.t.test$conf.int %>% round(.,4))[1]," , ",(SQL.t.test$conf.int %>% round(.,4))[2]),
+  paste0((Python.t.test$conf.int %>% round(.,4))[1]," , ",(Python.t.test$conf.int %>% round(.,4))[2])
+)
+                                                                                                                                                             
+p.value<-c(R.t.test$p.value,SQL.t.test$p.value,Python.t.test$p.value)
+kable(cbind(Occr.diff,CI,p.value)) 
+```
+
+  From the table above, I conclude that `Python` is the unique skill for data scientist, since it has highest difference in occurrence rate with very small p-value so that we have supportive evidence to say that the requirement of `Python` are different for job title with exact words *data scientist* and others job title related to data scientist. However, there is a limitation as I mentioned. I will discuss it in the `5.Discussion and Limitation` section.
+  
+ To sum up, programming skills related to data analysis such as `Python`, `R`, and `SQL` are very unique and required for data scientist.
+
+
+
+#### 3.3 Investigated job postings location in *Glassdoor.com* and *Indeed.com*
+
+ I created two data sets` loc_G`(n=616)  for Glassdoor.com and ` loc_I`(n=338) for Indeed.com by ising `ggmap` package[5] (See Supplemental code: Final_Report: Chunk 5) . Each of them contains these variables city name, coordinate information, and number of job postings. In addition, I plotted the job postings distribution around United states in both websites, so that we can get a rough idea about how these data distribute.  
+   
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=3.5}
+###Map
+library(ggmap)
+library(stringr)
+library(dplyr)
+library(cowplot)
+#location form city
+city_geocode_G<-as.character(GlassDoor$city)
+city_geocode_I<-as.character(Indeed$city)
+loc_G<-read.csv("geoforlgassdoor.csv")
+loc_I<-read.csv("geoforlindeed.csv")
+
+#loc_G<-cbind(city_geocode_G,geocode(city_geocode_G))
+#write.csv(loc_G,"geoforlgassdoor.csv")
+#loc_I<-cbind(city_geocode_I,geocode(city_geocode_I))
+#write.csv(loc_I,"geoforlindeed.csv")
+
+map <- get_map(location = 'United States',zoom=4, maptype="roadmap",color = "bw")
+
+count_G<-count(loc_G,city_geocode_G) %>% as.data.frame()
+count_I<-count(loc_I,city_geocode_I) %>% as.data.frame()
+
+loc_G<-count_G %>% inner_join(.,loc_G,by="city_geocode_G")
+loc_I<-count_I %>% inner_join(.,loc_I,by="city_geocode_I")
+
+G1<-ggmap(map) + borders(database="state")+
+    geom_point(aes(x = lon, y = lat,color='dark red',alpha=.2,size=n), 
+                        data = loc_G)+theme(legend.position="none")+
+ggtitle("Glassdoor.com (n=616)")+
+theme(
+      plot.title = element_text(hjust = 0.5, size=12),
+      axis.title.x=element_blank(),
+      axis.text.x=element_blank(),
+      axis.ticks.x=element_blank(),
+      axis.title.y=element_blank(),
+      axis.text.y=element_blank(),
+      axis.ticks.y=element_blank())
+
+I1<-ggmap(map) + borders(database="state")+
+   geom_point(aes(x = lon, y = lat,alpha=.5,size=n),color='green', 
+                        data = loc_I)+theme(legend.position="none")+ 
+  ggtitle("Indeed.com (n=338)")+
+  theme(
+        plot.title = element_text(hjust = 0.5,size=12 ),
+        axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.y=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank())
+
+GMap<-ggmap(map, extent = "device",legend = "bottomright") + borders(database="state") + 
+  stat_density2d(data = loc_G, 
+                 aes(x = lon, y = lat, fill = ..level.., alpha = ..level..), size = 2,bins = 25, geom = "polygon") + 
+  scale_alpha(range = c(0, 0.8), guide = FALSE)+ ggtitle("Glassdoor.com") +
+  theme(plot.title = element_text(hjust = 0.5, size=12), 
+        legend.position = "none")+
+  scale_fill_gradient2("Density",low = "yellow", high = "red",mid="yellow")
+  
+IMap<-ggmap(map, extent = "device",legend = "bottomright") + borders(database="state") + 
+  stat_density2d(data = loc_I, 
+                 aes(x = lon, y = lat, fill = ..level.., alpha = ..level..), size = 2, bins = 25, geom = "polygon") + 
+  scale_alpha(range = c(0, 0.8), guide = FALSE)+ ggtitle("Indeed.com") +
+  theme(plot.title = element_text(hjust = 0.5, size=12), 
+        legend.position = "none")+
+  scale_fill_gradient2("Density",low = "yellow", high = "red",mid="yellow")
+
+plot_grid(G1,I1)
+```
+
+  **Figure 2.** A map showing the distribution of data scientist job posting around U.S. in two different job posting websites. *There are bunch of job postings around coast area in United States, **New York (NY) ** state and **California (CA) ** state especially.*
+ 
+
+ * **Looking into state**
+ 
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=4}
+###By state
+Gstate<-as.character(GlassDoor[-which(is.na(GlassDoor$state)),"state"])
+Istate<-as.character(Indeed[-which(is.na(Indeed$state)),"state"])
+
+bothstate<-as.data.frame(cbind(
+Glassdoor=names(head(sort(table(Gstate),decreasing=TRUE), n = 5)),
+Count=head(sort(table(Gstate),decreasing=TRUE), n = 5),
+Indeed=names(head(sort(table(Istate),decreasing=TRUE), n = 5)),
+Count=head(sort(table(Istate),decreasing=TRUE), n = 5)
+))
+rownames(bothstate)<-c()
+
+kable(bothstate)
+
+#Suppose 
+#binom.test(x=sum(Gstate=="CA"),n=length(Gstate),p=0.25)
+#binom.test(x=sum(Istate=="CA"),n=length(Istate),p=0.25)
+
+#t-test
+#compare.loc.test<-prop.test(c(sum(Gstate=="CA"),sum(Istate=="CA")),c(length(Gstate),length(Istate)),correct=FALSE)
+```
+
+  As we can see from the table above, `California (CA)` state has the most data scientists job postings in both websites with 160 in Glassdoor and 91 in Indeed. Again, I performed 2-sample test for equality of proportions in California state, and found out that there is no significant difference between these two website with p-value = 0.7632.
+  Furthermore, I performed binominal t-test for the job postings proportion in California state is equal to 0.25 , and we do not have significant evidence (p-value in Glassdoor= 0.3714, in Indeed= 0.3097) to say that the proportion of data scientist jobs in California (CA) is not 25%. Therefore, I concluded that one fourth of data scientist jobs are located in `California (CA)`.
+
+    
+ * **Looking into city**
+ 
+  Furthermore, I investigated job postings in **city** ,instated of state, by creating bar chart. 
+  
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=3.5}
+library(gridExtra)
+Glocation<-paste(GlassDoor[-which(is.na(GlassDoor$state)),"city"],
+                 GlassDoor[-which(is.na(GlassDoor$state)),"state"],sep = ",")
+barchartG<-as.data.frame(head(sort(table(Glocation),decreasing=TRUE), n = 10))
+#barchartG$Freq<-barchartG$Freq/nrow(GlassDoor)
+
+
+Ilocation<-paste(Indeed[-which(is.na(Indeed$state)),"city"],
+                 Indeed[-which(is.na(Indeed$state)),"state"],sep = ",")
+barchartI<-as.data.frame(head(sort(table(Ilocation),decreasing=TRUE), n = 10))
+#barchartI$Freq<-barchartI$Freq/nrow(Indeed)
+
+barG<-ggplot(barchartG[1:6,],
+                 aes(x =reorder(Glocation, Freq) , y = Freq)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  coord_flip() + ggtitle("Glassdoor (n=616)") +xlab("")+ylab("Counts(#)")+
+  theme_bw()
+
+barI<-ggplot(barchartI[1:6,],
+           aes(x =reorder(Ilocation, Freq) , y = Freq)) + 
+           geom_bar(position = "dodge", stat = "identity") + 
+           coord_flip() + ggtitle("Indeed (n=338)") +xlab("")+ylab("Counts(#)")+
+           theme_bw()
+
+#plot_grid(barG,barI)
+
+city.g<-barchartG[1:5,]
+colnames(city.g)<-c("Glassdoor","count")
+city.i<-barchartI[1:5,]
+colnames(city.i)<-c("Indeed","count")
+kable(cbind(city.g,city.i))
+
+```
+  
+  I found that `New York, NY` city has the most data scientist job postings in both *Glassdoor.com* and *Indeed.com*. That is followed by `San Francisco, CA` city in *Glassdoor.com* and `San Jose, CA` city in *Indeed.com*. By simply investigating cities in United States, there is no doubt that `New York, NY` city needs data scientist jobs the most.
+
+* **Conclusion for data scientist job postings distribution**
+
+  To sum up, if we look into **state**, `California (CA)` state has the most data scientist job posting. If we look into certain **city**, `New York, NY` city needs data scientists the most. However, this might change from time to time ,due to renewal of job posting websites.(See `5.Discussion and Limitation`)
+
+  
+
+#### 3.4 Top 5 industries with the most job positngs on *Glassdoor.com*
+
+  According to *Glassdoor.com* with sample size 616, `information technology` industry employs the most data scientists with 222 postings, followed by `business service` industry with 99 postings, and `finance` industry with 34 postings.
+
+
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=4}
+
+##Industry
+indus<-as.data.frame(head(sort(table(GlassDoor$industry),decreasing=TRUE), n = 7))
+barIndus<-ggplot(indus,aes(x =reorder(Var1, Freq) , y = Freq)) + 
+  geom_bar(position = "dodge", stat = "identity") + 
+  coord_flip() + ggtitle("Industy with the most job posting  (n=616)") +xlab("")+ylab("Count(#)")+
+  theme_bw()
+colnames(indus)<-c("Industry (n=616)","count")
+kable(indus)
+
+```
+
+  In conclusion, `information technology` industry needs data scientist the most, and then my next step is to investigate what certain type of skills are needed in each industry.
+  
+
+**Top Three skills that each industry needed: **
+
+*  Information technology
+     + R (82%), Python (77%), Machine Learning (68%)
+*  Business service
+     + R (74%), Python (69%), Machine Learning (58%)
+*  Finance
+     + R (79%), Statistics (79%), Python (70%)
+*  Health care
+     + R (79%), Machine Learning (63%), Statistics (63%)
+*  Manufacturing 
+     + Statistics (77%), Python (73%), R (66%)
+## 4.Conclusion
+  The most common skills that employers look for is `R` programming skill. Of 616 data scientist jobs listed in *Glassdoor*, occurrence rate of `R` is 79%. Of 338 jobs posting listed in *Indeed*, occurrence rate of `R` is 82%. In addition, the most unique skills that employers look for are `Python`, `R`, and `SQL`, programming skill related to data analysis.
+
+  Most data science jobs are near coast area in United States. `California(CA)` state has the most data science jobs. While we focus on single city, `New York, NY` has the most data science jobs.
+
+  Last, `Information Technology` industry has the most data scientist job posts with 222 out of 616 (36%). Besides, in information technology industry, `R (82%)`, `Python (77%)`, and `machine learning (68%)` are the top three required skills respectively.
+  
+  With the same logic, I can easily compare two job posting websites and find important skills for data scientist.
+
+## 5.Discussion and Limitation 
+  There are some limitations to this analysis. First, since job posting websites would renew every day, our data set cannot be the same all the time and we cannot scrape "all" data science job on the website. Our analysis may be somewhat different, but the main concepts and methods do not change. Second, we defined skill set (keyword tags) by ourselves so that there would be potential for underestimation in some skills that we did not scrape. In addition, as I mentioned in exploratory analysis section, there might be a sampling bias due to the website we used. 
+  
+  For example, in *indeed.com* , when I input **data scientist** as searching job title, the output will contain other job titles such as quantitative analyst, data engineer...ect. Besides, some company might use other term as **"data scientist"**, such as quantitative scientist, and quantitative analyst. Therefore, I have not excluded them while doing analysis, since these job are very similar to "data scientist". Because of this, my analysis would have some biases, if we simply want to focus on those jobs that title has exact words *data scientist*.
+
+  Other than that, in ` 3.2 Unique skill for data scientist ` section, I want to find unique skill for "data scientist". I separated data into two parts. The first part is those have exact word data scientist, and those who do not. However, some companies might just use different name for data scientist as I mentioned. Therefore, depend on what analysis you want to do, the result might be different.
+
+  Last, I performed t-test in the analysis. Therefore, I have to make data normality assumption.
+
+
+##References
+*  [0] Job posting website, Glassdoor.com, and Indeed.com URL:https://www.glassdoor.com/, https://www.indeed.com/
+
+*  [1] Manyika James et al. (May 2011), "Big data: The next frontier for innovation, competition, and productivity". URL: https://www.mckinsey.com/business-functions/digital-mckinsey/our-insights/big-data-the-next-frontier-for-innovation
+
+*  [2] Hadley Wickham [aut, cre], Easily Harvest (Scrape) Web Pages, URL: https://github.com/benjamin-ackerman/Datascience_project1/blob/master/writeup.pdf
+
+*  [3] Google extension, Select gadget, URL: https://chrome.google.com/webstore/detail/selectorgadget/mhjhnkcfbdhnjickkkdbjoemdmbfginb?hl=en
+
+*  [4] Hadley Wickham [aut, cre, cph], Simple, Consistent Wrappers for Common String Operations, URL: https://cran.r-project.org/web/packages/stringr/stringr.pdf
+
+*  [5] David Kahle [aut, cre], Hadley Wickham [aut], Spatial Visualization with ggplot2, URL: https://github.com/dkahle/ggmap
+
+*  [6] Referenced Shannon Wongvibulsin code for install.package
+
+\newpage
+
+##Appendex
+
+
+##### Heat map shows the distribution of data scientist jobs
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=4}
+plot_grid(GMap,IMap)
+```
+
+##### Visualized Skills that industries needed
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=4}
+
+##Industry
+
+df_indus<-GlassDoor %>%
+group_by(industry) %>% filter(industry=="Information Technology"|industry=="Business Services"|
+                              industry=="Finance"|industry=="Manufacturing"|industry=="Retail"|
+                              industry=="Media"|industry=="Health Care") %>%
+summarise(Statistics = mean(Statistics),Data.mining=mean(Data.mining),R=mean(R),Python=mean(Python),Machine.Learning=mean(Machine.Learning),SQL=mean(SQL))%>%
+  as.data.frame()
+
+df_m <- melt(df_indus, id.vars = "industry")
+
+
+ggplot(df_m, aes(x=industry, y=value, fill=variable)) + theme_bw() +
+         geom_bar(position="stack", stat="identity") +
+coord_flip() + labs(x = ' ', y = 'Occurrence rate')+
+  theme(plot.title = element_text(hjust = 0.5,size = 12),
+        legend.position="none")+facet_wrap(~variable)+ 
+  scale_fill_manual(values=c("grey70","grey60","grey70","grey60","grey70","grey60"))
+
+```
+
+#####Visualized distribution of data scientist job postings around U.S.
+```{r,warning=FALSE,echo=FALSE,message=FALSE, fig.width=6, fig.height=4}
+plot_grid(barG,barI)
+```
